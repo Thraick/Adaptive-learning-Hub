@@ -44,8 +44,6 @@ const defaultUserData: UserData = {
 interface DataContextType {
   userData: UserData | null;
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>;
-  apiKey: string | null;
-  setApiKey: (key: string | null) => Promise<void>;
   voiceURI: string | null;
   setVoiceURI: React.Dispatch<React.SetStateAction<string | null>>;
   resetUserData: () => Promise<void>;
@@ -58,7 +56,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { user } = useAuth();
   const { showNotification } = useNotification();
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [apiKey, setApiKeyState] = useState<string | null>(null);
   const [voiceURI, setVoiceURI] = useState<string | null>(() => window.localStorage.getItem('adaptive-learning-hub-voice'));
   const [loading, setLoading] = useState(true);
   
@@ -68,7 +65,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setLoading(true);
         const { data, error, status } = await supabase
             .from('profiles')
-            .select(`user_data, gemini_api_key`)
+            .select(`user_data`)
             .eq('id', user.id)
             .single();
 
@@ -78,7 +75,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (data) {
             setUserData(data.user_data);
-            setApiKeyState(data.gemini_api_key);
         }
     } catch (error) {
         showNotification("Could not fetch your profile data.", 'error');
@@ -124,20 +120,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [voiceURI]);
 
 
-  const setApiKey = async (key: string | null) => {
-    if (!user) return;
-    setApiKeyState(key);
-    const { error } = await supabase
-        .from('profiles')
-        .update({ gemini_api_key: key })
-        .eq('id', user.id);
-    if(error) {
-        showNotification('Could not save API key.', 'error');
-    } else {
-        showNotification('API Key saved successfully!', 'success');
-    }
-  }
-
   const resetUserData = async () => {
     setUserData(defaultUserData); // Update local state immediately for responsiveness
     if(!user) return;
@@ -154,7 +136,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <DataContext.Provider value={{ userData, setUserData, apiKey, setApiKey, voiceURI, setVoiceURI, resetUserData, loading }}>
+    <DataContext.Provider value={{ userData, setUserData, voiceURI, setVoiceURI, resetUserData, loading }}>
       {children}
     </DataContext.Provider>
   );

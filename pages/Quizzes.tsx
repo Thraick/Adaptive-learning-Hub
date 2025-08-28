@@ -15,7 +15,7 @@ type Question = {
 type QuizState = 'idle' | 'fetching' | 'in_progress' | 'results';
 
 const Quizzes: React.FC = () => {
-  const { userData, setUserData, apiKey } = useData();
+  const { userData, setUserData } = useData();
   const { showNotification } = useNotification();
   const [state, setState] = useState<QuizState>('idle');
   const [topic, setTopic] = useState('');
@@ -56,15 +56,13 @@ const Quizzes: React.FC = () => {
         };
 
         // Update persona and recommendations in the background
-        if(apiKey) {
-            updatePersonaAndRecommendations(apiKey, updatedUserData).then(updates => {
-                setUserData(current => ({
-                    ...current,
-                    profile: { ...current.profile, persona: updates.persona },
-                    recommendations: updates.recommendations
-                }));
-            }).catch(console.error); // Fire and forget
-        }
+        updatePersonaAndRecommendations(updatedUserData).then(updates => {
+            setUserData(current => ({
+                ...current,
+                profile: { ...current.profile, persona: updates.persona },
+                recommendations: updates.recommendations
+            }));
+        }).catch(console.error); // Fire and forget
         
         return updatedUserData;
     });
@@ -72,13 +70,13 @@ const Quizzes: React.FC = () => {
 
   const startQuiz = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!apiKey || !topic.trim()) {
+    if (!topic.trim()) {
       showNotification("Please enter a topic to start a quiz.", 'error');
       return;
     }
     setState('fetching');
     try {
-      const fetchedQuestions = await generateQuiz(apiKey, topic);
+      const fetchedQuestions = await generateQuiz(topic);
       if (fetchedQuestions.length > 0) {
         setQuestions(fetchedQuestions);
         setCurrentQuestion(0);

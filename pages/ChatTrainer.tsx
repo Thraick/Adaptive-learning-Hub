@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, AlertCircle, Mic, Volume2 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
@@ -13,7 +14,7 @@ interface Message {
 }
 
 const ChatTrainer: React.FC = () => {
-  const { userData, setUserData, apiKey, voiceURI } = useData();
+  const { userData, setUserData, voiceURI } = useData();
   const [messages, setMessages] = useState<Message[]>([]);
   const [userInput, setUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -41,7 +42,7 @@ const ChatTrainer: React.FC = () => {
   useEffect(scrollToBottom, [messages]);
   
   const handleSendMessage = async () => {
-    if (!userInput.trim() || !apiKey) return;
+    if (!userInput.trim()) return;
 
     const newUserMessage: Message = { role: 'user', text: userInput };
     setMessages(prev => [...prev, newUserMessage]);
@@ -53,7 +54,7 @@ const ChatTrainer: React.FC = () => {
     try {
         // FIX: Removed explicit `Content[]` type to allow for stricter type inference on `role`, matching UserData.
         const geminiHistory = [...userData.chatHistory, {role: 'user' as const, parts: [{text: currentInput}]}];
-        const { response, corrections } = await getChatResponse(apiKey, geminiHistory, userData);
+        const { response, corrections } = await getChatResponse(geminiHistory, userData);
 
         const newAiMessage: Message = { role: 'model', text: response };
         setMessages(prev => [...prev, newAiMessage]);
@@ -87,7 +88,7 @@ const ChatTrainer: React.FC = () => {
         // After every 5 user messages, update persona and recommendations
         const userMessageCount = newHistory.filter(m => m.role === 'user').length;
         if (userMessageCount > 0 && userMessageCount % 5 === 0) {
-            updatePersonaAndRecommendations(apiKey, updatedUserData).then(updates => {
+            updatePersonaAndRecommendations(updatedUserData).then(updates => {
                 setUserData(prev => ({
                     ...prev,
                     profile: { ...prev.profile, persona: updates.persona },

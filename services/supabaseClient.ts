@@ -1,38 +1,27 @@
+
 import { createClient } from '@supabase/supabase-js'
-import { UserData } from '../types';
 
-// =================================================================================
-//                            ATTENTION: ACTION REQUIRED
-// =================================================================================
-// The application crashed because it couldn't find your Supabase credentials.
-// You MUST replace the placeholder values below with your own Supabase project's
-// URL and Anon Key for the application to work.
-//
-// HOW TO FIX:
-// 1. Go to https://supabase.com/ to create a new project (it has a generous free tier).
-// 2. In your Supabase project dashboard, go to the "Project Settings" (the gear icon).
-// 3. Select "API" from the sidebar.
-// 4. Under "Project API keys", find your "Project URL" and the "anon" public key.
-// 5. Paste them into the variables below, replacing the placeholder strings.
-// =================================================================================
-const supabaseUrl = 'YOUR_SUPABASE_URL'; // <-- PASTE YOUR SUPABASE URL HERE
-const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY'; // <-- PASTE YOUR SUPABASE ANON KEY HERE
+// These variables are populated from your environment configuration.
+// See the `example.env` file for more information.
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
 
-if (supabaseUrl === 'YOUR_SUPABASE_URL' || supabaseAnonKey === 'YOUR_SUPABASE_ANON_KEY') {
+if (!supabaseUrl || !supabaseAnonKey) {
     console.warn(
 `********************************************************************************
 *                                                                              *
 *                           CONFIGURATION REQUIRED                             *
 *                                                                              *
-*    Please update YOUR_SUPABASE_URL and YOUR_SUPABASE_ANON_KEY in             *
-*    services/supabaseClient.ts with your actual Supabase credentials.         *
+*    Supabase URL or Anon Key is missing. Please make sure you have a          *
+*    .env file with SUPABASE_URL and SUPABASE_ANON_KEY variables.              *
+*    See example.env for reference.                                            *
 *                                                                              *
 ********************************************************************************`
     );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl!, supabaseAnonKey!);
 
 /*
 ================================================================================
@@ -41,14 +30,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 1.  Go to your Supabase project's SQL Editor.
 2.  Run the following SQL to create the 'profiles' table. This table will
-    store user data, including their learning progress and API key.
+    store user data, including their learning progress.
 
     -- Create the profiles table
     CREATE TABLE public.profiles (
       id uuid NOT NULL,
       updated_at timestamp with time zone NULL,
       user_data jsonb NULL,
-      gemini_api_key text NULL,
       CONSTRAINT profiles_pkey PRIMARY KEY (id),
       CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
     );

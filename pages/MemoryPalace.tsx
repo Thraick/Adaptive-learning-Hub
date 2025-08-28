@@ -14,7 +14,7 @@ interface Card {
 }
 
 const MemoryPalace: React.FC = () => {
-  const { userData, setUserData, apiKey } = useData();
+  const { userData, setUserData } = useData();
   const { showNotification } = useNotification();
   const [cards, setCards] = useState<Card[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -24,17 +24,13 @@ const MemoryPalace: React.FC = () => {
   const [showHint, setShowHint] = useState(false);
 
   const fetchCards = async () => {
-    if (!apiKey) {
-        showNotification("Please set your API key in Settings.", 'error');
-        return;
-    }
     setIsLoading(true);
     setCurrentCardIndex(0);
     setFeedback('idle');
     setUserInput('');
     setShowHint(false);
     try {
-      const generatedCards = await generateMemoryCards(apiKey, userData.grammarErrors, userData.vocabulary);
+      const generatedCards = await generateMemoryCards(userData.grammarErrors, userData.vocabulary);
       if (generatedCards.length > 0) {
         setCards(generatedCards);
       } else {

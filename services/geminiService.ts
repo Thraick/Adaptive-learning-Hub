@@ -20,12 +20,9 @@ const safelyParseJSON = <T,>(text: string, fallback: T): T => {
     }
 };
 
-const callGemini = async (apiKey: string, contents: string | (string | { inlineData: { mimeType: string; data: string; }; })[], schema?: any) => {
-    if (!apiKey) {
-        throw new Error("API key is not configured. Please set it in the Settings page.");
-    }
+const callGemini = async (contents: string | (string | { inlineData: { mimeType: string; data: string; }; })[], schema?: any) => {
     try {
-        const ai = new GoogleGenAI({ apiKey });
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const response: GenerateContentResponse = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: Array.isArray(contents) ? { parts: contents.map(c => typeof c === 'string' ? { text: c } : c) } : contents,
@@ -40,14 +37,14 @@ const callGemini = async (apiKey: string, contents: string | (string | { inlineD
         return response.text;
     } catch (error) {
         console.error("Error calling Gemini API:", error);
-        throw new Error("Failed to communicate with the AI. Please check your API key and network connection.");
+        throw new Error("Failed to communicate with the AI. Please check your environment configuration and network connection.");
     }
 };
 
 
 // --- API Functions ---
 
-export const getAssessmentQuestions = async (apiKey: string, history: AssessmentResult[]) => {
+export const getAssessmentQuestions = async (history: AssessmentResult[]) => {
     const lastResult = history[history.length - 1];
     const weaknessPrompt = lastResult ? `The user has previously shown weaknesses in these areas: ${lastResult.weaknesses.join(', ')}. Please create questions that test these areas, while also covering a general range of topics.` : '';
 
@@ -67,11 +64,11 @@ export const getAssessmentQuestions = async (apiKey: string, history: Assessment
             required: ["question", "options", "correctAnswer"]
         }
     };
-    const responseText = await callGemini(apiKey, prompt, schema);
+    const responseText = await callGemini(prompt, schema);
     return safelyParseJSON<{ question: string; options: string[]; correctAnswer: string }[]>(responseText, []);
 };
 
-export const generateAssessmentFromContext = async (apiKey: string, context: string, level: UserLevel) => {
+export const generateAssessmentFromContext = async (context: string, level: UserLevel) => {
     const prompt = `Based on the following text, generate a 5-question multiple-choice assessment for a user at the "${level}" level. The questions should test vocabulary found in the text, reading comprehension of the text's main ideas, and a grammatical structure present in the text. Text: """${context}""". Respond in JSON format.`;
     const schema = {
         type: Type.ARRAY,
@@ -88,12 +85,12 @@ export const generateAssessmentFromContext = async (apiKey: string, context: str
             required: ["question", "options", "correctAnswer"]
         }
     };
-    const responseText = await callGemini(apiKey, prompt, schema);
+    const responseText = await callGemini(prompt, schema);
     return safelyParseJSON<{ question: string; options: string[]; correctAnswer: string }[]>(responseText, []);
 };
 
 
-export const analyzeAssessment = async (apiKey: string, answers: Record<number, string>) => {
+export const analyzeAssessment = async (answers: Record<number, string>) => {
     const prompt = `Analyze the following user answers to an English proficiency test. Based on their performance, determine their level ('Beginner', 'Intermediate', 'Advanced', or 'Proficient'), provide a detailed breakdown of their strengths and weaknesses, and give 3 concrete recommendations for improvement. User answers: ${JSON.stringify(answers)}. Respond in JSON format.`;
     const schema = {
         type: Type.OBJECT,
@@ -105,12 +102,12 @@ export const analyzeAssessment = async (apiKey: string, answers: Record<number, 
         },
         required: ["level", "strengths", "weaknesses", "recommendations"]
     };
-    const responseText = await callGemini(apiKey, prompt, schema);
+    const responseText = await callGemini(prompt, schema);
     // FIX: Corrected typo in fallback value from 'Beginger' to 'Beginner' to match UserLevel type.
     return safelyParseJSON<{ level: UserLevel, strengths: string[], weaknesses: string[], recommendations: string[] }>(responseText, { level: 'Beginner', strengths: [], weaknesses: [], recommendations: [] });
 };
 
-export const getSpellingWord = async (apiKey: string, level: UserLevel) => {
+export const getSpellingWord = async (level: UserLevel) => {
     const prompt = `Provide a single, moderately challenging English word for a spelling challenge for a user at the "${level}" level. Avoid common or very simple words (e.g., 'cat', 'sun', 'book'). Include its definition and an example sentence. Respond in JSON format.`;
     const schema = {
         type: Type.OBJECT,
@@ -121,16 +118,13 @@ export const getSpellingWord = async (apiKey: string, level: UserLevel) => {
         },
         required: ["word", "definition", "example"]
     };
-    const responseText = await callGemini(apiKey, prompt, schema);
+    const responseText = await callGemini(prompt, schema);
     return safelyParseJSON<{ word: string, definition: string, example: string }>(responseText, { word: '', definition: '', example: '' });
 };
 
-export const getChatResponse = async (apiKey:string, history: Content[], userData: UserData) => {
-    if (!apiKey) {
-        throw new Error("API key is not configured. Please set it in the Settings page.");
-    }
+export const getChatResponse = async (history: Content[], userData: UserData) => {
     try {
-        const ai = new GoogleGenAI({ apiKey });
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const personaPrompt = userData.profile.persona.interests.length > 0 ? `The user is interested in ${userData.profile.persona.interests.join(', ')}. Try to incorporate these topics into the conversation naturally.` : '';
 
         const chat = ai.chats.create({
@@ -169,7 +163,7 @@ Respond ONLY with a single JSON object with two keys: "response" (your conversat
     }
 };
 
-export const extractTextFromImage = async (apiKey: string, mimeType: string, base64Data: string) => {
+export const extractTextFromImage = async (mimeType: string, base64Data: string) => {
     const prompt = "Extract all English text from the image.";
     const imagePart = {
         inlineData: {
@@ -177,11 +171,11 @@ export const extractTextFromImage = async (apiKey: string, mimeType: string, bas
             data: base64Data
         }
     };
-    const responseText = await callGemini(apiKey, [prompt, imagePart]);
+    const responseText = await callGemini([prompt, imagePart]);
     return responseText;
 };
 
-export const generateVocabularyFromContext = async (apiKey: string, context: string, level: UserLevel) => {
+export const generateVocabularyFromContext = async (context: string, level: UserLevel) => {
     const prompt = `From the provided text, identify 3-5 vocabulary words that would be appropriate for an English learner at the "${level}" level. For each word, provide a simple definition and the example sentence from the text where it appears. Text: """${context}""". Respond in JSON format.`;
     const schema = {
         type: Type.ARRAY,
@@ -195,11 +189,11 @@ export const generateVocabularyFromContext = async (apiKey: string, context: str
             required: ["word", "definition", "example"]
         }
     };
-    const responseText = await callGemini(apiKey, prompt, schema);
+    const responseText = await callGemini(prompt, schema);
     return safelyParseJSON<Omit<VocabularyWord, 'addedDate' | 'level'>[]>(responseText, []);
 };
 
-export const generateMemoryCards = async (apiKey: string, errors: GrammarError[], vocab: VocabularyWord[]) => {
+export const generateMemoryCards = async (errors: GrammarError[], vocab: VocabularyWord[]) => {
     const recentErrors = errors.slice(-5).map(e => ({ error: e.error, correction: e.correction, explanation: e.explanation }));
     const recentVocab = vocab.slice(-5).map(v => ({ word: v.word, definition: v.definition }));
 
@@ -224,11 +218,11 @@ export const generateMemoryCards = async (apiKey: string, errors: GrammarError[]
             required: ["category", "challenge", "answer", "hint"]
         }
     };
-    const responseText = await callGemini(apiKey, prompt, schema);
+    const responseText = await callGemini(prompt, schema);
     return safelyParseJSON<{ category: string, challenge: string, answer: string, hint: string }[]>(responseText, []);
 };
 
-export const generateQuiz = async (apiKey: string, topic: string) => {
+export const generateQuiz = async (topic: string) => {
     const prompt = `Generate a 5-question multiple-choice quiz about "${topic}". The questions should be interesting and test general knowledge and reading comprehension. Provide 4 options for each question.`;
     const schema = {
         type: Type.ARRAY,
@@ -245,11 +239,11 @@ export const generateQuiz = async (apiKey: string, topic: string) => {
             required: ["question", "options", "correctAnswer"]
         }
     };
-    const responseText = await callGemini(apiKey, prompt, schema);
+    const responseText = await callGemini(prompt, schema);
     return safelyParseJSON<{ question: string, options: string[], correctAnswer: string }[]>(responseText, []);
 };
 
-export const updatePersonaAndRecommendations = async (apiKey: string, userData: UserData) => {
+export const updatePersonaAndRecommendations = async (userData: UserData) => {
     const prompt = `
       You are an AI learning coach. Analyze the provided user data to understand the learner's profile, interests, and recent performance.
       Based on this data, update their persona and generate 3 personalized, actionable recommendations for the main dashboard.
@@ -287,11 +281,11 @@ export const updatePersonaAndRecommendations = async (apiKey: string, userData: 
         },
         required: ["persona", "recommendations"]
     };
-    const responseText = await callGemini(apiKey, prompt, schema);
+    const responseText = await callGemini(prompt, schema);
     return safelyParseJSON<{ persona: { interests: string[], summary: string }, recommendations: string[] }>(responseText, { persona: userData.profile.persona, recommendations: userData.recommendations });
 };
 
-export const generateLearningPlan = async (apiKey: string, userData: UserData) => {
+export const generateLearningPlan = async (userData: UserData) => {
     const prompt = `
         You are an AI learning coach. Based on the user's data, generate a personalized learning plan with 5 actionable items to help them improve.
         
@@ -327,7 +321,7 @@ export const generateLearningPlan = async (apiKey: string, userData: UserData) =
             required: ["type", "title", "description"]
         }
     };
-    const responseText = await callGemini(apiKey, prompt, schema);
+    const responseText = await callGemini(prompt, schema);
     const parsed = safelyParseJSON<Omit<LearningRecommendation, 'id' | 'completed'>[]>(responseText, []);
     return parsed.map(item => ({...item, id: `task-${Date.now()}-${Math.random()}`, completed: false }));
 };

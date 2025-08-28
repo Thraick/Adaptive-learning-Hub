@@ -20,18 +20,14 @@ const colorMap: Record<LearningRecommendation['type'], string> = {
 };
 
 const LearningPlan: React.FC = () => {
-    const { userData, setUserData, apiKey } = useData();
+    const { userData, setUserData } = useData();
     const { showNotification } = useNotification();
     const [isLoading, setIsLoading] = useState(false);
 
     const fetchPlan = async () => {
-        if (!apiKey) {
-            showNotification("API Key not set.", "error");
-            return;
-        }
         setIsLoading(true);
         try {
-            const newPlan = await generateLearningPlan(apiKey, userData);
+            const newPlan = await generateLearningPlan(userData);
             setUserData(prev => ({...prev, learningPlan: newPlan }));
         } catch (error) {
             console.error(error);
@@ -46,7 +42,7 @@ const LearningPlan: React.FC = () => {
             fetchPlan();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [apiKey]);
+    }, []);
     
     const toggleTaskCompletion = (taskId: string) => {
         setUserData(prev => ({

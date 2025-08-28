@@ -18,14 +18,14 @@ const StatCard: React.FC<{ icon: React.ElementType, title: string, value: string
 );
 
 const Dashboard: React.FC = () => {
-  const { userData, setUserData, apiKey } = useData();
+  const { userData, setUserData } = useData();
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchRecs = async () => {
-      if (!apiKey) return;
+      if (!userData) return;
       setIsLoading(true);
       try {
-        const updates = await updatePersonaAndRecommendations(apiKey, userData);
+        const updates = await updatePersonaAndRecommendations(userData);
         setUserData(prev => ({
             ...prev,
             profile: { ...prev.profile, persona: updates.persona },
@@ -44,7 +44,7 @@ const Dashboard: React.FC = () => {
         fetchRecs();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey]);
+  }, []);
   
   const recentErrors = userData.grammarErrors.slice(-5).reverse();
 

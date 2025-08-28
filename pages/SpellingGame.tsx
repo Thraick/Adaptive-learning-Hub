@@ -13,7 +13,7 @@ interface CurrentWord extends Omit<VocabularyWord, 'addedDate' | 'level'> {
 }
 
 const SpellingGame: React.FC = () => {
-  const { userData, setUserData, apiKey, voiceURI } = useData();
+  const { userData, setUserData, voiceURI } = useData();
   const { showNotification } = useNotification();
   const [currentWord, setCurrentWord] = useState<CurrentWord | null>(null);
   const [userInput, setUserInput] = useState('');
@@ -25,7 +25,6 @@ const SpellingGame: React.FC = () => {
   const nextWordTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchNewWord = async (isInitial = false) => {
-    if (!apiKey) return;
     setIsLoading(true);
     setFeedback(null);
     setUserInput('');
@@ -41,7 +40,7 @@ const SpellingGame: React.FC = () => {
           suggestedVocabulary: prev.suggestedVocabulary.slice(1)
         }));
       } else {
-        const fetchedWord = await getSpellingWord(apiKey, userData.profile.level);
+        const fetchedWord = await getSpellingWord(userData.profile.level);
         if (fetchedWord && fetchedWord.word) {
             wordData = { ...fetchedWord, source: 'ai'};
         }
@@ -69,8 +68,8 @@ const SpellingGame: React.FC = () => {
             clearTimeout(nextWordTimeoutRef.current);
         }
     }
-    // eslint-disable-next-line react-hooks-exhaustive-deps
-  }, [apiKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   useEffect(() => {
     if (!isLoading) {

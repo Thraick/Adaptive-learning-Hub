@@ -113,17 +113,11 @@ const Sidebar: React.FC<{
 
 
 const AppContent: React.FC = () => {
-  const { apiKey, loading } = useData();
+  const { loading } = useData();
   const [currentPage, setCurrentPage] = useState<Page>('Dashboard');
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { logout } = useAuth();
-
-  useEffect(() => {
-    if (!loading && !apiKey) {
-        setCurrentPage('Settings');
-    }
-  }, [apiKey, loading]);
 
   const CurrentPageComponent = useMemo(() => pageComponents[currentPage], [currentPage]);
   

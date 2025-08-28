@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Check, ArrowRight, Upload, Volume2, X, FileText, Image as ImageIcon } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
@@ -15,7 +16,7 @@ type Question = {
 type AssessmentState = 'idle' | 'context_entry' | 'fetching' | 'in_progress' | 'analyzing' | 'results';
 
 const Assessment: React.FC = () => {
-  const { userData, setUserData, apiKey, voiceURI } = useData();
+  const { userData, setUserData, voiceURI } = useData();
   const { showNotification } = useNotification();
   const [state, setState] = useState<AssessmentState>('idle');
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -37,10 +38,9 @@ const Assessment: React.FC = () => {
   }
 
   const startGeneralAssessment = async () => {
-    if (!apiKey) return;
     setState('fetching');
     try {
-      const fetchedQuestions = await getAssessmentQuestions(apiKey, userData.assessmentHistory);
+      const fetchedQuestions = await getAssessmentQuestions(userData.assessmentHistory);
       if (fetchedQuestions.length > 0) {
         setQuestions(fetchedQuestions);
         setCurrentQuestion(0);
@@ -60,12 +60,12 @@ const Assessment: React.FC = () => {
   };
 
   const handleContextAssessment = async (context: string) => {
-    if (!apiKey || !context.trim()) return;
+    if (!context.trim()) return;
     setIsLoadingContext(true);
     try {
         const [generatedQuestions, vocab] = await Promise.all([
-            generateAssessmentFromContext(apiKey, context, userData.profile.level),
-            generateVocabularyFromContext(apiKey, context, userData.profile.level)
+            generateAssessmentFromContext(context, userData.profile.level),
+            generateVocabularyFromContext(context, userData.profile.level)
         ]);
         
         if (vocab.length > 0) {
@@ -124,10 +124,9 @@ const Assessment: React.FC = () => {
   };
   
   const finishGeneralAssessment = async (finalAnswers: Record<number, string>) => {
-    if (!apiKey) return;
     setState('analyzing');
     try {
-      const analysis = await analyzeAssessment(apiKey, finalAnswers);
+      const analysis = await analyzeAssessment(finalAnswers);
       setResult(analysis);
       setUserData(prev => ({
         ...prev,
@@ -143,7 +142,7 @@ const Assessment: React.FC = () => {
   
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !apiKey) return;
+    if (!file) return;
 
     setIsLoadingContext(true);
     try {
@@ -151,7 +150,7 @@ const Assessment: React.FC = () => {
       reader.onload = async (e) => {
         try {
           const base64String = (e.target?.result as string).split(',')[1];
-          const extractedText = await extractTextFromImage(apiKey, file.type, base64String);
+          const extractedText = await extractTextFromImage(file.type, base64String);
           if (extractedText) {
             handleContextAssessment(extractedText);
           } else {
