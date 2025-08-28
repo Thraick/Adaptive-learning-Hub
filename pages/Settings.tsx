@@ -1,9 +1,10 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { KeyRound, Eye, EyeOff, UploadCloud, DownloadCloud, Trash2, AlertTriangle, Speaker, User, Save, Clock } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSpeech } from '../hooks/useSpeech';
 import { useNotification } from '../contexts/NotificationContext';
+import { UserData } from '../types';
 
 const SettingsPage: React.FC = () => {
     const { apiKey, setApiKey, userData, setUserData, resetUserData, voiceURI, setVoiceURI } = useData();
@@ -13,26 +14,32 @@ const SettingsPage: React.FC = () => {
     const { voices, speak } = useSpeech();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [testPhrase, setTestPhrase] = useState("The quick brown fox jumps over the lazy dog.");
-    const [profile, setProfile] = useState(userData.profile);
-    const [settings, setSettings] = useState(userData.settings);
+    
+    // Local state to manage form inputs to avoid rapid context updates on every keystroke
+    const [profile, setProfile] = useState(userData!.profile);
+    const [settings, setSettings] = useState(userData!.settings);
+
+    useEffect(() => {
+        setProfile(userData!.profile);
+        setSettings(userData!.settings);
+    }, [userData]);
 
 
     const handleSaveKey = () => {
         if (keyInput.trim()) {
             setApiKey(keyInput.trim());
-            showNotification('API Key saved successfully!', 'success');
         } else {
             showNotification('Please enter a valid API key.', 'error');
         }
     };
     
     const handleSaveProfile = () => {
-        setUserData(prev => ({ ...prev, profile }));
+        setUserData(prev => prev ? ({ ...prev, profile }) : null);
         showNotification('Profile updated successfully!', 'success');
     };
 
     const handleSaveSettings = () => {
-        setUserData(prev => ({ ...prev, settings }));
+        setUserData(prev => prev ? ({ ...prev, settings }) : null);
         showNotification('Settings saved successfully!', 'success');
     }
 
@@ -64,11 +71,11 @@ const SettingsPage: React.FC = () => {
             try {
                 const text = e.target?.result;
                 if (typeof text === 'string') {
-                    const importedData = JSON.parse(text);
+                    const importedData = JSON.parse(text) as UserData;
                     // Basic validation
                     if (importedData.profile && importedData.stats && importedData.vocabulary) {
                         setUserData(importedData);
-                        showNotification("Data imported successfully!", 'success');
+                        showNotification("Data imported successfully! It will be saved to your account.", 'success');
                     } else {
                         throw new Error("Invalid data format.");
                     }
@@ -84,9 +91,12 @@ const SettingsPage: React.FC = () => {
     const handleReset = () => {
         if (window.confirm("Are you sure you want to reset all your data? This action cannot be undone.")) {
             resetUserData();
-            showNotification("Your data has been reset.", 'info');
         }
     };
+
+    if (!userData) {
+        return null; // Data is loading
+    }
 
     return (
         <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
@@ -97,7 +107,7 @@ const SettingsPage: React.FC = () => {
                     <AlertTriangle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                     <div>
                         <h3 className="font-bold">Welcome to the Adaptive Learning Hub!</h3>
-                        <p className="text-sm">Please enter your Google AI API key below to get started. The key is stored only in your browser and is required for all learning features.</p>
+                        <p className="text-sm">Please enter your Google AI API key below to get started. The key is stored securely with your profile and is required for all learning features.</p>
                     </div>
                 </div>
             )}

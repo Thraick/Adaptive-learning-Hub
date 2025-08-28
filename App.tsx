@@ -1,7 +1,8 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { LayoutDashboard, Target, Puzzle, MessageSquare, BookOpen, BrainCircuit, BarChart4, ChevronLeft, ChevronRight, Menu, X, Settings, Lightbulb, SpellCheck, Trophy, ClipboardCheck } from 'lucide-react';
+import { LayoutDashboard, Target, Puzzle, MessageSquare, BookOpen, BrainCircuit, BarChart4, ChevronLeft, ChevronRight, Menu, X, Settings, Lightbulb, SpellCheck, Trophy, ClipboardCheck, LogOut } from 'lucide-react';
 import { DataProvider, useData } from './contexts/DataContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import Notification from './components/Notification';
 import Dashboard from './pages/Dashboard';
@@ -14,6 +15,9 @@ import SettingsPage from './pages/Settings';
 import Quizzes from './pages/Quizzes';
 import LearningPlan from './pages/LearningPlan';
 import Ranks from './pages/Ranks';
+import AuthPage from './pages/AuthPage';
+import Loader from './components/Loader';
+
 
 type Page = 'Dashboard' | 'Assessment' | 'Spelling Game' | 'Chat' | 'Memory Palace' | 'Progress' | 'Quizzes' | 'Learning Plan' | 'Ranks' | 'Settings';
 
@@ -49,6 +53,7 @@ const Sidebar: React.FC<{
   isSidebarOpen: boolean;
   setSidebarOpen: (isOpen: boolean) => void;
 }> = ({ currentPage, setCurrentPage, isSidebarOpen, setSidebarOpen }) => {
+  const { logout } = useAuth();
   const mainNavItems = navItems.slice(0, -1);
   const settingsNavItem = navItems.slice(-1)[0];
 
@@ -77,7 +82,7 @@ const Sidebar: React.FC<{
             </button>
             ))}
         </div>
-        <div className="mt-auto">
+        <div className="mt-auto space-y-2">
             <button
                 key={settingsNavItem.name}
                 onClick={() => setCurrentPage(settingsNavItem.name)}
@@ -90,6 +95,13 @@ const Sidebar: React.FC<{
                 <settingsNavItem.icon className="h-6 w-6" />
                 <span className={`ml-4 transition-opacity duration-200 ${!isSidebarOpen && 'opacity-0'}`}>{settingsNavItem.name}</span>
             </button>
+             <button
+                onClick={logout}
+                className="flex items-center p-3 rounded-lg w-full transition-colors hover:bg-gray-700"
+            >
+                <LogOut className="h-6 w-6" />
+                <span className={`ml-4 transition-opacity duration-200 ${!isSidebarOpen && 'opacity-0'}`}>Logout</span>
+            </button>
         </div>
       </nav>
       <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="absolute -right-3 top-16 bg-gray-700 hover:bg-blue-600 p-1.5 rounded-full focus:outline-none">
@@ -101,24 +113,25 @@ const Sidebar: React.FC<{
 
 
 const AppContent: React.FC = () => {
-  const { apiKey } = useData();
+  const { apiKey, loading } = useData();
   const [currentPage, setCurrentPage] = useState<Page>('Dashboard');
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { logout } = useAuth();
 
   useEffect(() => {
-    if (!apiKey) {
+    if (!loading && !apiKey) {
         setCurrentPage('Settings');
     }
-  }, [apiKey]);
+  }, [apiKey, loading]);
 
   const CurrentPageComponent = useMemo(() => pageComponents[currentPage], [currentPage]);
-
-  if (!apiKey) {
+  
+  if (loading) {
     return (
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-            <SettingsPage />
-        </main>
+        <div className="flex h-screen w-full items-center justify-center">
+            <Loader text="Loading your learning hub..." />
+        </div>
     );
   }
 
@@ -141,7 +154,7 @@ const AppContent: React.FC = () => {
                     <span className="font-bold text-xl">Learn Hub</span>
                     <button onClick={() => setMobileMenuOpen(false)}><X /></button>
                 </div>
-                <nav className="p-4">
+                <nav className="p-4 flex flex-col h-full">
                     {navItems.map((item) => (
                         <button
                             key={item.name}
@@ -155,6 +168,9 @@ const AppContent: React.FC = () => {
                             {item.name}
                         </button>
                     ))}
+                    <button onClick={logout} className="flex items-center p-3 rounded-lg w-full text-left mt-auto hover:bg-gray-700">
+                        <LogOut className="h-5 w-5 mr-3" /> Logout
+                    </button>
                 </nav>
             </div>
         </div>
@@ -167,14 +183,36 @@ const AppContent: React.FC = () => {
 };
 
 
+const AppContainer: React.FC = () => {
+    const { session, loading } = useAuth();
+    
+    if (loading) {
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <Loader text="Initializing..." />
+            </div>
+        )
+    }
+
+    if (!session) {
+        return <AuthPage />;
+    }
+
+    return (
+        <DataProvider>
+            <AppContent />
+        </DataProvider>
+    )
+}
+
 const App: React.FC = () => {
   return (
-    <DataProvider>
-      <NotificationProvider>
-        <AppContent />
+    <NotificationProvider>
+        <AuthProvider>
+            <AppContainer />
+        </AuthProvider>
         <Notification />
-      </NotificationProvider>
-    </DataProvider>
+    </NotificationProvider>
   );
 }
 
