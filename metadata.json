@@ -1,0 +1,7 @@
+{
+  "name": "Adaptive Learning Hub",
+  "description": "An AI-powered application to elevate English proficiency from primary school to university level through personalized, adaptive learning and real-time feedback.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
