@@ -3,11 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 
 // These variables are populated from your environment configuration.
 // See the `example.env` file for more information.
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || 'YOUR_SUPABASE_URL';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
 
 
-if (!supabaseUrl || !supabaseAnonKey) {
+if (supabaseUrl === 'YOUR_SUPABASE_URL' || supabaseAnonKey === 'YOUR_SUPABASE_ANON_KEY') {
     console.warn(
 `********************************************************************************
 *                                                                              *
@@ -21,7 +21,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
     );
 }
 
-export const supabase = createClient(supabaseUrl!, supabaseAnonKey!);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /*
 ================================================================================
